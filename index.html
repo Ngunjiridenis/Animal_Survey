@@ -1,0 +1,942 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>FarmTrack — Real-Time Animal Intelligence</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Mono:wght@300;400;500&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0a0f0a;
+  --bg2: #0f160f;
+  --bg3: #141d14;
+  --surface: #1a241a;
+  --surface2: #1f2b1f;
+  --border: rgba(74,180,74,0.12);
+  --border2: rgba(74,180,74,0.22);
+  --green: #4ab44a;
+  --green2: #2d8f2d;
+  --green-bright: #6dcc6d;
+  --green-dim: rgba(74,180,74,0.15);
+  --amber: #e8a838;
+  --amber-dim: rgba(232,168,56,0.15);
+  --red: #e84a4a;
+  --red-dim: rgba(232,74,74,0.13);
+  --text: #e8f0e8;
+  --text2: #8fa88f;
+  --text3: #556655;
+  --mono: 'DM Mono', monospace;
+  --sans: 'Instrument Sans', sans-serif;
+  --display: 'Syne', sans-serif;
+  --radius: 8px;
+  --radius-lg: 14px;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--sans);overflow:hidden;}
+
+/* SCREENS */
+.screen{display:none;width:100vw;height:100vh;}
+.screen.active{display:flex;}
+
+/* ROLE BADGE */
+.role-badge {
+  font-size: 10px;
+  padding: 2px 8px;
+  border-radius: 99px;
+  font-family: var(--mono);
+  font-weight: 500;
+}
+.role-admin { background: rgba(232,168,56,0.2); color: var(--amber); }
+.role-user { background: rgba(74,180,74,0.2); color: var(--green); }
+
+/* TOP NAV */
+.top-nav {
+  background: var(--bg2);
+  border-bottom: 1px solid var(--border);
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  z-index: 10;
+}
+.nav-brand {font-family:var(--display);font-size:18px;font-weight:700;}
+.nav-brand span{color:var(--green);}
+.user-info {display:flex;align-items:center;gap:10px;font-size:13px;}
+.view-mode-toggle {
+  display:flex;
+  background:var(--surface);
+  border-radius:99px;
+  padding:3px;
+  font-size:11px;
+  font-family:var(--mono);
+}
+.view-mode-toggle button {
+  padding:4px 14px;
+  border:none;
+  border-radius:99px;
+  background:transparent;
+  color:var(--text2);
+  transition:all 0.2s;
+}
+.view-mode-toggle button.active {
+  background:var(--green);
+  color:#0a0f0a;
+  font-weight:600;
+}
+
+/* Reuse ALL original styles */
+.login-bg-grid{position:absolute;inset:0;background-image:linear-gradient(var(--border) 1px,transparent 1px),linear-gradient(90deg,var(--border) 1px,transparent 1px);background-size:60px 60px;opacity:0.5;}
+.login-orb{position:absolute;width:500px;height:500px;border-radius:50%;background:radial-gradient(circle,rgba(74,180,74,0.08) 0%,transparent 70%);top:50%;left:50%;transform:translate(-50%,-50%);}
+.login-box{position:relative;z-index:2;width:420px;background:var(--bg2);border:1px solid var(--border2);border-radius:var(--radius-lg);padding:40px;animation:fadeUp 0.5s ease both;}
+@keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+.login-logo{display:flex;align-items:center;gap:10px;margin-bottom:32px;}
+.logo-mark{width:36px;height:36px;border:1.5px solid var(--green);border-radius:6px;display:flex;align-items:center;justify-content:center;}
+.logo-mark svg{width:18px;height:18px;}
+.logo-text{font-family:var(--display);font-size:22px;font-weight:700;color:var(--text);letter-spacing:-0.03em;}
+.logo-text span{color:var(--green);}
+.login-title{font-family:var(--display);font-size:28px;font-weight:700;margin-bottom:6px;line-height:1.1;}
+.login-sub{font-size:13px;color:var(--text2);margin-bottom:28px;}
+.form-group{margin-bottom:16px;}
+.form-group label{display:block;font-size:11px;font-weight:500;color:var(--text2);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.06em;font-family:var(--mono);}
+.form-group input,.form-group select{width:100%;background:var(--surface);border:1px solid var(--border2);border-radius:var(--radius);padding:10px 14px;font-size:14px;color:var(--text);font-family:var(--sans);outline:none;transition:border-color 0.2s;}
+.form-group input:focus,.form-group select:focus{border-color:var(--green);}
+.form-group input::placeholder{color:var(--text3);}
+.form-hint{font-size:11px;color:var(--text3);margin-top:8px;font-family:var(--mono);}
+.login-err{font-size:12px;color:var(--red);margin-bottom:10px;font-family:var(--mono);}
+.btn-primary{width:100%;padding:12px;background:var(--green);color:#0a0f0a;border:none;border-radius:var(--radius);font-size:14px;font-weight:600;font-family:var(--display);cursor:pointer;transition:background 0.2s,transform 0.1s;letter-spacing:0.02em;margin-top:4px;}
+.btn-primary:hover{background:var(--green-bright);}
+.btn-primary:active{transform:scale(0.98);}
+
+.sidebar{width:280px;min-width:280px;background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;height:100vh;overflow:hidden;}
+.sb-header{padding:16px;border-bottom:1px solid var(--border);}
+.sb-logo{display:flex;align-items:center;gap:8px;margin-bottom:14px;}
+.sb-logo-text{font-family:var(--display);font-size:16px;font-weight:700;letter-spacing:-0.02em;}
+.sb-logo-text span{color:var(--green);}
+.farm-pill{display:flex;align-items:center;gap:8px;background:var(--green-dim);border:1px solid rgba(74,180,74,0.3);border-radius:6px;padding:6px 10px;cursor:pointer;}
+.farm-pill-dot{width:7px;height:7px;border-radius:50%;background:var(--green);animation:pulse 1.4s infinite;}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.3}}
+.farm-pill-name{font-size:12px;font-weight:600;color:var(--green);flex:1;font-family:var(--mono);}
+.farm-pill-change{font-size:10px;color:var(--text3);text-decoration:underline;cursor:pointer;}
+.sb-search{padding:10px 16px;border-bottom:1px solid var(--border);}
+.search-wrap{position:relative;}
+.search-wrap svg{position:absolute;left:10px;top:50%;transform:translateY(-50%);width:14px;height:14px;opacity:0.4;}
+.search-wrap input{width:100%;background:var(--surface);border:1px solid var(--border2);border-radius:var(--radius);padding:8px 10px 8px 32px;font-size:13px;color:var(--text);font-family:var(--mono);outline:none;transition:border-color 0.2s;}
+.search-wrap input:focus{border-color:var(--green);}
+.search-wrap input::placeholder{color:var(--text3);}
+.sb-filters{display:flex;gap:4px;padding:8px 16px;border-bottom:1px solid var(--border);}
+.sf{font-size:10px;padding:3px 10px;border-radius:99px;border:1px solid var(--border2);color:var(--text2);cursor:pointer;font-family:var(--mono);transition:all 0.15s;}
+.sf.on{background:var(--green);color:#0a0f0a;border-color:var(--green);}
+.sb-stats{display:grid;grid-template-columns:1fr 1fr;gap:6px;padding:10px 16px;border-bottom:1px solid var(--border);}
+.stat-mini{background:var(--surface);border-radius:var(--radius);padding:8px 10px;}
+.stat-mini-val{font-size:20px;font-weight:700;font-family:var(--display);line-height:1;}
+.stat-mini-label{font-size:10px;color:var(--text3);font-family:var(--mono);margin-top:2px;}
+.animal-list{flex:1;overflow-y:auto;padding:8px;}
+.animal-list::-webkit-scrollbar{width:4px;}
+.animal-list::-webkit-scrollbar-track{background:transparent;}
+.animal-list::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px;}
+.a-card{display:flex;align-items:center;gap:8px;padding:9px 10px;border-radius:var(--radius);cursor:pointer;border:1px solid transparent;margin-bottom:3px;transition:all 0.15s;}
+.a-card:hover{background:var(--surface);border-color:var(--border);}
+.a-card.selected{background:var(--green-dim);border-color:rgba(74,180,74,0.3);}
+.a-card.alert-card{border-color:rgba(232,74,74,0.25);background:var(--red-dim);}
+.a-avatar{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0;border:1px solid var(--border);}
+.a-name{font-size:12px;font-weight:600;font-family:var(--display);}
+.a-tag{font-size:10px;color:var(--text3);font-family:var(--mono);}
+.a-status{margin-left:auto;text-align:right;}
+.status-dot-sm{width:6px;height:6px;border-radius:50%;display:inline-block;margin-right:4px;}
+.a-status-txt{font-size:10px;font-family:var(--mono);display:flex;align-items:center;justify-content:flex-end;}
+.a-batt{font-size:10px;color:var(--text3);font-family:var(--mono);}
+.main-area{flex:1;display:flex;flex-direction:column;overflow:hidden;}
+.topbar{display:flex;align-items:center;gap:10px;padding:10px 16px;border-bottom:1px solid var(--border);background:var(--bg2);}
+.topbar-left{display:flex;align-items:center;gap:10px;flex:1;}
+.topbar-title{font-family:var(--display);font-size:15px;font-weight:700;}
+.live-chip{display:flex;align-items:center;gap:5px;background:rgba(74,180,74,0.12);border:1px solid rgba(74,180,74,0.25);border-radius:99px;padding:3px 10px;font-size:10px;font-family:var(--mono);color:var(--green);}
+.live-chip-dot{width:6px;height:6px;border-radius:50%;background:var(--green);animation:pulse 1.2s infinite;}
+.topbar-right{display:flex;gap:6px;}
+.tb-btn{font-size:11px;padding:6px 12px;border:1px solid var(--border2);border-radius:var(--radius);background:transparent;color:var(--text2);cursor:pointer;font-family:var(--mono);transition:all 0.15s;}
+.tb-btn:hover{border-color:var(--green);color:var(--green);}
+.tb-btn.green{background:var(--green);color:#0a0f0a;border-color:var(--green);font-weight:600;}
+.content-panels{flex:1;display:flex;overflow:hidden;}
+.map-panel{flex:1;position:relative;background:var(--bg3);overflow:hidden;}
+.map-canvas{width:100%;height:100%;}
+.map-overlay-tl{position:absolute;top:12px;left:12px;display:flex;flex-direction:column;gap:6px;}
+.map-chip{background:var(--bg2);border:1px solid var(--border2);border-radius:6px;padding:5px 10px;font-size:10px;font-family:var(--mono);color:var(--text2);}
+.map-chip span{color:var(--green);font-weight:500;}
+.map-legend{position:absolute;bottom:12px;left:12px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:8px 12px;display:flex;gap:12px;}
+.leg-item{display:flex;align-items:center;gap:5px;font-size:10px;font-family:var(--mono);color:var(--text2);}
+.leg-dot{width:8px;height:8px;border-radius:50%;}
+.right-panel{width:310px;border-left:1px solid var(--border);display:flex;flex-direction:column;background:var(--bg2);overflow:hidden;}
+.rp-tabs{display:flex;border-bottom:1px solid var(--border);}
+.rp-tab{flex:1;padding:10px 6px;font-size:11px;font-family:var(--mono);text-align:center;cursor:pointer;color:var(--text3);border-bottom:2px solid transparent;transition:all 0.15s;}
+.rp-tab.active{color:var(--green);border-bottom-color:var(--green);}
+.rp-body{flex:1;overflow-y:auto;padding:12px;}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.7);display:flex;align-items:center;justify-content:center;z-index:100;opacity:0;pointer-events:none;transition:opacity 0.2s;}
+.modal-overlay.open{opacity:1;pointer-events:all;}
+.modal{background:var(--bg2);border:1px solid var(--border2);border-radius:var(--radius-lg);width:480px;max-height:90vh;overflow-y:auto;padding:28px;animation:fadeUp 0.25s ease both;}
+.modal-title{font-family:var(--display);font-size:20px;font-weight:700;margin-bottom:4px;}
+.modal-sub{font-size:12px;color:var(--text2);margin-bottom:22px;}
+.modal-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.modal-actions{display:flex;gap:8px;margin-top:20px;}
+.modal-cancel{flex:1;padding:10px;background:transparent;border:1px solid var(--border2);border-radius:var(--radius);font-size:13px;color:var(--text2);cursor:pointer;font-family:var(--sans);}
+.modal-submit{flex:2;padding:10px;background:var(--green);border:none;border-radius:var(--radius);font-size:13px;font-weight:600;color:#0a0f0a;cursor:pointer;font-family:var(--display);}
+
+/* CAMERA VIEW */
+.camera-grid {
+  flex:1;
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(280px,1fr));
+  gap:12px;
+  padding:16px;
+  background:var(--bg3);
+}
+.camera-feed {
+  background:#111;
+  border:2px solid var(--border);
+  border-radius:8px;
+  position:relative;
+  overflow:hidden;
+  aspect-ratio:16/9;
+}
+.camera-feed .feed-header {
+  position:absolute;
+  top:8px;
+  left:8px;
+  right:8px;
+  display:flex;
+  justify-content:space-between;
+  font-size:10px;
+  font-family:var(--mono);
+  z-index:2;
+}
+.camera-feed .live-dot {
+  width:8px;height:8px;background:#e84a4a;border-radius:50%;animation:pulse 1s infinite;
+}
+.camera-feed .cam-label {
+  background:rgba(0,0,0,0.7);
+  padding:2px 8px;
+  border-radius:4px;
+}
+.camera-feed .feed-content {
+  height:100%;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:42px;
+  opacity:0.9;
+}
+.camera-feed .overlay {
+  position:absolute;
+  bottom:8px;
+  left:8px;
+  background:rgba(74,180,74,0.9);
+  color:#0a0f0a;
+  font-size:10px;
+  padding:2px 8px;
+  border-radius:4px;
+  font-family:var(--mono);
+}
+</style>
+</head>
+<body>
+
+<!-- LOGIN SCREEN -->
+<div id="loginScreen" class="screen active">
+  <div class="login-bg-grid"></div>
+  <div class="login-orb"></div>
+  <div class="login-box">
+    <div class="login-logo">
+      <div class="logo-mark">
+        <svg viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="9" cy="9" r="7" stroke="#4ab44a" stroke-width="1.5"/>
+          <circle cx="9" cy="9" r="3" fill="#4ab44a"/>
+          <line x1="9" y1="2" x2="9" y2="4" stroke="#4ab44a" stroke-width="1.5"/>
+          <line x1="9" y1="14" x2="9" y2="16" stroke="#4ab44a" stroke-width="1.5"/>
+          <line x1="2" y1="9" x2="4" y2="9" stroke="#4ab44a" stroke-width="1.5"/>
+          <line x1="14" y1="9" x2="16" y2="9" stroke="#4ab44a" stroke-width="1.5"/>
+        </svg>
+      </div>
+      <div class="logo-text">Farm<span>Track</span></div>
+    </div>
+    <div class="login-title">Access your farm</div>
+    <div class="login-sub">Demo accounts (password: demo123)</div>
+    
+    <div class="form-group">
+      <label>Email</label>
+      <input type="email" id="loginEmail" value="admin@farmtrack.com"/>
+    </div>
+    <div class="form-group">
+      <label>Password</label>
+      <input type="password" id="loginPwd" value="demo123"/>
+    </div>
+    <div class="form-hint">
+      • admin@farmtrack.com → Admin<br>
+      • david@isiolo.farm → Owner of Isiolo Conservancy
+    </div>
+    <div class="login-err" id="loginErr" style="display:none">Wrong password. Use <strong>demo123</strong></div>
+    <button class="btn-primary" onclick="attemptLogin()">Sign In</button>
+  </div>
+</div>
+
+<!-- ADMIN DASHBOARD -->
+<div id="adminDashboard" class="screen">
+  <div class="sidebar">
+    <div class="sb-header">
+      <div class="sb-logo">
+        <div class="logo-mark" style="width:28px;height:28px;">
+          <svg viewBox="0 0 18 18" fill="none" width="14" height="14">
+            <circle cx="9" cy="9" r="7" stroke="#4ab44a" stroke-width="1.5"/>
+            <circle cx="9" cy="9" r="3" fill="#4ab44a"/>
+            <line x1="9" y1="2" x2="9" y2="4" stroke="#4ab44a" stroke-width="1.5"/>
+            <line x1="9" y1="14" x2="9" y2="16" stroke="#4ab44a" stroke-width="1.5"/>
+            <line x1="2" y1="9" x2="4" y2="9" stroke="#4ab44a" stroke-width="1.5"/>
+            <line x1="14" y1="9" x2="16" y2="9" stroke="#4ab44a" stroke-width="1.5"/>
+          </svg>
+        </div>
+        <div class="sb-logo-text">Farm<span>Track</span></div>
+      </div>
+    </div>
+    <div style="padding:16px;">
+      <h3 style="font-size:14px;color:var(--green);margin-bottom:12px;">ADMIN PANEL</h3>
+      <div class="sf on" onclick="switchAdminTab('overview')">Overview</div>
+      <div class="sf" onclick="switchAdminTab('users')">All Users</div>
+      <div class="sf" onclick="switchAdminTab('farms')">All Farms</div>
+      <div class="sf" onclick="openCombinedRegisterModal()">+ Register User + Farm</div>
+    </div>
+  </div>
+
+  <div class="main-area">
+    <div class="top-nav">
+      <div class="nav-brand">Farm<span>Track</span> — Admin</div>
+      <div class="user-info">
+        <span id="adminName"></span>
+        <span class="role-badge role-admin">ADMIN</span>
+        <button class="logout-btn" onclick="logout()">Logout</button>
+      </div>
+    </div>
+    <div id="adminContent" style="flex:1;padding:24px;overflow:auto;background:var(--bg3);"></div>
+  </div>
+</div>
+
+<!-- USER / FARM DASHBOARD (reused for both normal users and admin "view farm") -->
+<div id="farmDashboard" class="screen">
+  <div class="sidebar">
+    <div class="sb-header">
+      <div class="sb-logo">
+        <div class="logo-mark" style="width:28px;height:28px;">
+          <svg viewBox="0 0 18 18" fill="none" width="14" height="14">
+            <circle cx="9" cy="9" r="7" stroke="#4ab44a" stroke-width="1.5"/>
+            <circle cx="9" cy="9" r="3" fill="#4ab44a"/>
+            <line x1="9" y1="2" x2="9" y2="4" stroke="#4ab44a" stroke-width="1.5"/>
+            <line x1="9" y1="14" x2="9" y2="16" stroke="#4ab44a" stroke-width="1.5"/>
+            <line x1="2" y1="9" x2="4" y2="9" stroke="#4ab44a" stroke-width="1.5"/>
+            <line x1="14" y1="9" x2="16" y2="9" stroke="#4ab44a" stroke-width="1.5"/>
+          </svg>
+        </div>
+        <div class="sb-logo-text">Farm<span>Track</span></div>
+      </div>
+      <div class="farm-pill" id="activeFarmPill" onclick="showFarmSelector()">
+        <div class="farm-pill-dot"></div>
+        <div class="farm-pill-name" id="activeFarmName">—</div>
+        <div class="farm-pill-change">switch</div>
+      </div>
+    </div>
+    <!-- Sidebar content (animal list, filters, etc.) -->
+    <div class="sb-search">
+      <div class="search-wrap">
+        <svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="7" cy="7" r="5" stroke="currentColor" stroke-width="1.5"/>
+          <line x1="11" y1="11" x2="15" y2="15" stroke="currentColor" stroke-width="1.5"/>
+        </svg>
+        <input type="text" id="animalSearch" placeholder="Search animals..." oninput="filterAnimals(this.value)"/>
+      </div>
+    </div>
+    <div class="sb-filters">
+      <div class="sf on" onclick="setFilter('All',this)">All</div>
+      <div class="sf" onclick="setFilter('Moving',this)">Moving</div>
+      <div class="sf" onclick="setFilter('Resting',this)">Resting</div>
+      <div class="sf" onclick="setFilter('Alert',this)">Alert</div>
+    </div>
+    <div class="sb-stats">
+      <div class="stat-mini"><div class="stat-mini-val" id="statTotal">0</div><div class="stat-mini-label">total animals</div></div>
+      <div class="stat-mini"><div class="stat-mini-val" style="color:var(--green)" id="statOnline">0</div><div class="stat-mini-label">online GPS</div></div>
+      <div class="stat-mini"><div class="stat-mini-val" style="color:var(--amber)" id="statMoving">0</div><div class="stat-mini-label">moving now</div></div>
+      <div class="stat-mini"><div class="stat-mini-val" style="color:var(--red)" id="statAlerts">0</div><div class="stat-mini-label">active alerts</div></div>
+    </div>
+    <div class="animal-list" id="animalList"></div>
+    <div class="sb-hw-btn" onclick="setRightTab('hw')">MicroGPS + MicroCameras</div>
+  </div>
+
+  <div class="main-area">
+    <div class="top-nav">
+      <div class="nav-brand" id="dashboardBrand">Farm<span>Track</span></div>
+      <div class="user-info">
+        <span id="dashboardUserName"></span>
+        <span id="dashboardRoleBadge" class="role-badge role-user">USER</span>
+        <button onclick="backToAdmin()" id="backToAdminBtn" style="display:none;background:transparent;border:1px solid var(--amber);color:var(--amber);padding:4px 12px;border-radius:var(--radius);font-size:12px;">← Back to Admin</button>
+        <button class="logout-btn" onclick="logout()">Logout</button>
+      </div>
+    </div>
+
+    <div class="topbar">
+      <div class="topbar-left">
+        <div class="topbar-title" id="topbarTitle">Live Tracking</div>
+        <div class="live-chip"><span class="live-chip-dot"></span>LIVE</div>
+      </div>
+      <div class="topbar-right">
+        <div class="view-mode-toggle" id="viewModeToggle">
+          <button onclick="setViewMode('gps')" id="gpsBtn" class="active">MicroGPS Map</button>
+          <button onclick="setViewMode('camera')" id="cameraBtn">MicroCameras</button>
+        </div>
+        <button class="tb-btn" onclick="toggleGeofence()">Geo-fence</button>
+        <button class="tb-btn" onclick="setRightTab('ai')">AI analysis</button>
+      </div>
+    </div>
+
+    <div class="content-panels" id="contentPanels">
+      <!-- GPS MAP PANEL -->
+      <div class="map-panel" id="gpsPanel">
+        <canvas id="mapCanvas" class="map-canvas"></canvas>
+        <div class="map-overlay-tl">
+          <div class="map-chip">Fence: <span id="fenceLabel">OFF</span></div>
+          <div class="map-chip">Animals: <span id="mapCount">0</span></div>
+        </div>
+        <div class="map-legend">
+          <div class="leg-item"><div class="leg-dot" style="background:#4ab44a"></div>Moving</div>
+          <div class="leg-item"><div class="leg-dot" style="background:#888"></div>Resting</div>
+          <div class="leg-item"><div class="leg-dot" style="background:#e84a4a"></div>Alert</div>
+        </div>
+      </div>
+
+      <!-- CAMERA VIEW PANEL (hidden by default) -->
+      <div id="cameraPanel" style="flex:1;display:none;flex-direction:column;background:var(--bg3);">
+        <div class="camera-grid" id="cameraGrid"></div>
+      </div>
+
+      <div class="right-panel">
+        <div class="rp-tabs">
+          <div class="rp-tab active" id="tab-ai" onclick="setRightTab('ai')">AI alerts</div>
+          <div class="rp-tab" id="tab-detail" onclick="setRightTab('detail')">Animal</div>
+          <div class="rp-tab" id="tab-hw" onclick="setRightTab('hw')">Hardware</div>
+        </div>
+        <div class="rp-body" id="rpBody"></div>
+      </div>
+    </div>
+
+    <div class="bottom-bar">
+      <div class="bb-item"><div class="bb-label">farm</div><div class="bb-val" id="bbFarm">—</div></div>
+      <div class="bb-sep"></div>
+      <div class="bb-item"><div class="bb-label">last sync</div><div class="bb-val" id="bbSync">—</div></div>
+      <div class="bb-sep"></div>
+      <div class="bb-item"><div class="bb-label">GPS uptime</div><div class="bb-val">99.4%</div></div>
+      <div class="bb-sep"></div>
+      <div class="bb-item"><div class="bb-label">network</div><div class="bb-val" style="color:var(--green)">LoRaWAN + 4G</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- COMBINED REGISTER MODAL (User + Farm) -->
+<div class="modal-overlay" id="combinedRegisterModal">
+  <div class="modal">
+    <div class="modal-title">Register New User + Farm</div>
+    <div class="modal-sub">The user will become the owner of the new farm</div>
+    <div class="form-group"><label>User Full Name</label><input type="text" id="regUserName" placeholder="e.g. Jane Wanjiku"/></div>
+    <div class="form-group"><label>User Email</label><input type="email" id="regUserEmail" placeholder="jane@farm.com"/></div>
+    <div class="modal-grid">
+      <div class="form-group"><label>Farm Name</label><input type="text" id="regFarmName" placeholder="e.g. Isiolo Conservancy"/></div>
+      <div class="form-group"><label>County</label><input type="text" id="regFarmLoc" value="Isiolo County"/></div>
+    </div>
+    <div class="form-group"><label>Number of animals</label><input type="number" id="regFarmAnimals" value="28" min="1"/></div>
+    <div class="modal-actions">
+      <button class="modal-cancel" onclick="closeCombinedRegisterModal()">Cancel</button>
+      <button class="modal-submit" onclick="registerCombinedUserFarm()">Create User &amp; Farm</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ====================== DATA MODEL ======================
+let currentUser = null;
+let viewingFarmId = null; // for admin impersonation
+
+let allUsers = [
+  { 
+    id: 1, 
+    name: "Admin User", 
+    email: "admin@farmtrack.com", 
+    role: "admin", 
+    ownedFarms: [] 
+  },
+  { 
+    id: 2, 
+    name: "David Kiprop", 
+    email: "david@isiolo.farm", 
+    role: "user", 
+    ownedFarms: [3] 
+  }
+];
+
+let farms = [
+  { id: 1, name: "Savanna Ridge Farm", loc: "Narok County", animals: 50, cameras: 6, status: "online", color: "#4ab44a", ownerUserId: null },
+  { id: 2, name: "Maasai Plains Ranch", loc: "Kajiado County", animals: 32, cameras: 3, status: "online", color: "#7F77DD", ownerUserId: null },
+  { id: 3, name: "Isiolo Wildlife Conservancy", loc: "Isiolo County", animals: 28, cameras: 5, status: "online", color: "#4ab44a", ownerUserId: 2 }
+];
+
+let selectedFarm = null;
+let animals = [];
+let selectedAnimal = null;
+let activeFilter = 'All';
+let searchVal = '';
+let rightTab = 'ai';
+let geofenceOn = false;
+let alerts = [];
+let aiInsights = [];
+let syncTime = new Date();
+let currentViewMode = 'gps'; // 'gps' or 'camera'
+
+// Species data (same as before)
+const SPECIES = ['Elephant','Lion','Zebra','Cheetah','Giraffe','Buffalo','Wildebeest','Impala','Gazelle','Rhino'];
+const EMOJIS = ['🐘','🦁','🦓','🐆','🦒','🐃','🐂','🦌','🦌','🦏'];
+const NAMES = ['Amara','Tau','Zara','Kesi','Bora','Nala','Simba','Duma','Paka','Jua','Mara','Kibo','Safi','Tamu','Njia','Wema','Heri','Imani','Tumai','Furaha','Tendo','Nguvu','Nia','Neema','Baraka','Zawadi','Riziki','Elimu','Habari','Faraja','Amani','Upendo','Salama','Huruma','Rehema','Thabiti','Kiburi','Ushindi','Ukweli','Uhuru','Jasiri','Makini','Hodari','Shujaa','Bingwa','Mfalme','Sultani','Radi','Mbuni','Ndege'];
+
+function genAnimals(farm){
+  const count = farm.animals;
+  return Array.from({length:count},(_,i)=>{
+    const si = i % SPECIES.length;
+    const status = Math.random()<0.06?'Alert':Math.random()<0.55?'Moving':'Resting';
+    return {
+      id:i+1,
+      name: NAMES[i] || `Animal-${i+1}`,
+      species: SPECIES[si],
+      emoji: EMOJIS[si],
+      tag: `#${SPECIES[si].slice(0,2).toUpperCase()}-${String(i+1).padStart(3,'0')}`,
+      status,
+      battery: Math.round(25+Math.random()*75),
+      x: 60+Math.random()*680,
+      y: 40+Math.random()*360,
+      vx: (Math.random()-0.5)*1.2,
+      vy: (Math.random()-0.5)*1.0,
+      trail: [],
+      alertReason: status==='Alert'?pickAlertReason():null,
+    };
+  });
+}
+
+function pickAlertReason(){
+  const reasons = ['Boundary breach detected','Unusual speed — possible theft','Separated from herd >2hrs','No GPS ping for 15min'];
+  return reasons[Math.floor(Math.random()*reasons.length)];
+}
+
+// ====================== AUTH & DASHBOARD SWITCHING ======================
+function attemptLogin(){
+  const email = document.getElementById('loginEmail').value.trim();
+  const pwd = document.getElementById('loginPwd').value;
+
+  if(pwd !== "demo123"){
+    document.getElementById('loginErr').style.display = 'block';
+    return;
+  }
+
+  currentUser = allUsers.find(u => u.email === email);
+  if(!currentUser){
+    document.getElementById('loginErr').style.display = 'block';
+    return;
+  }
+
+  document.getElementById('loginScreen').classList.remove('active');
+  document.getElementById('loginErr').style.display = 'none';
+
+  if(currentUser.role === "admin"){
+    document.getElementById('adminDashboard').classList.add('active');
+    initAdminDashboard();
+  } else {
+    // Normal user opens their farm dashboard
+    document.getElementById('farmDashboard').classList.add('active');
+    initFarmDashboard(currentUser.ownedFarms[0] || farms[0].id);
+  }
+}
+
+function logout(){
+  currentUser = null;
+  viewingFarmId = null;
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('loginScreen').classList.add('active');
+  if(window.animFrame) cancelAnimationFrame(window.animFrame);
+}
+
+function backToAdmin(){
+  document.getElementById('farmDashboard').classList.remove('active');
+  document.getElementById('adminDashboard').classList.add('active');
+  viewingFarmId = null;
+  initAdminDashboard();
+}
+
+// ====================== ADMIN FUNCTIONS ======================
+function initAdminDashboard(){
+  document.getElementById('adminName').textContent = currentUser.name;
+  switchAdminTab('overview');
+}
+
+function switchAdminTab(tab){
+  const content = document.getElementById('adminContent');
+  if(tab === 'overview'){
+    content.innerHTML = `<h2>System Overview</h2>
+      <p><strong>${allUsers.length}</strong> users • <strong>${farms.length}</strong> farms</p>
+      <p style="margin-top:20px;color:var(--green)">Admin can now view any farm’s live tracking without logging out.</p>`;
+  }
+  else if(tab === 'users'){
+    let html = `<h2>All Users &amp; Their Farms</h2>`;
+    allUsers.forEach(u => {
+      const userFarms = farms.filter(f => u.ownedFarms.includes(f.id));
+      html += `<div style="background:var(--surface);padding:16px;border-radius:12px;margin-bottom:12px;">
+        <div style="display:flex;justify-content:space-between">
+          <div><strong>${u.name}</strong> <span class="role-badge ${u.role==='admin'?'role-admin':'role-user'}">${u.role}</span></div>
+          <div style="font-size:12px">${u.email}</div>
+        </div>
+        <div style="margin-top:8px;font-size:13px">Owns: ${userFarms.length ? userFarms.map(f=>f.name).join(', ') : '—'}</div>
+      </div>`;
+    });
+    content.innerHTML = html;
+  }
+  else if(tab === 'farms'){
+    let html = `<h2>All Farms — Click to view live tracking</h2><div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px;margin-top:16px;">`;
+    farms.forEach(f => {
+      const owner = allUsers.find(u => u.ownedFarms.includes(f.id));
+      html += `<div onclick="adminViewFarm(${f.id})" style="background:var(--surface);padding:16px;border-radius:12px;cursor:pointer">
+        <div style="font-weight:600">${f.name}</div>
+        <div style="font-size:12px;color:var(--text3)">${f.loc} • ${f.animals} animals • ${f.cameras} micro-cameras</div>
+        <div style="margin-top:8px;font-size:11px">Owner: ${owner ? owner.name : '—'}</div>
+      </div>`;
+    });
+    html += `</div>`;
+    content.innerHTML = html;
+  }
+}
+
+function openCombinedRegisterModal(){
+  document.getElementById('combinedRegisterModal').classList.add('open');
+}
+function closeCombinedRegisterModal(){
+  document.getElementById('combinedRegisterModal').classList.remove('open');
+}
+
+function registerCombinedUserFarm(){
+  const userName = document.getElementById('regUserName').value.trim();
+  const userEmail = document.getElementById('regUserEmail').value.trim();
+  const farmName = document.getElementById('regFarmName').value.trim() || "New Farm";
+  const farmLoc = document.getElementById('regFarmLoc').value;
+  const animalCount = parseInt(document.getElementById('regFarmAnimals').value) || 20;
+
+  if(!userName || !userEmail) {
+    alert("Please fill user name and email");
+    return;
+  }
+
+  // Create new user
+  const newUser = {
+    id: allUsers.length + 1,
+    name: userName,
+    email: userEmail,
+    role: "user",
+    ownedFarms: []
+  };
+  allUsers.push(newUser);
+
+  // Create new farm and link to this user
+  const newFarm = {
+    id: farms.length + 1,
+    name: farmName,
+    loc: farmLoc,
+    animals: animalCount,
+    cameras: Math.floor(animalCount / 7) + 2,
+    status: "online",
+    color: "#4ab44a",
+    ownerUserId: newUser.id
+  };
+  farms.push(newFarm);
+  newUser.ownedFarms.push(newFarm.id);
+
+  alert(`✅ User "${userName}" created and is now owner of "${farmName}"!`);
+  closeCombinedRegisterModal();
+  switchAdminTab('users');
+}
+
+function adminViewFarm(farmId){
+  viewingFarmId = farmId;
+  document.getElementById('adminDashboard').classList.remove('active');
+  document.getElementById('farmDashboard').classList.add('active');
+  document.getElementById('backToAdminBtn').style.display = 'inline-block';
+  document.getElementById('dashboardRoleBadge').textContent = 'VIEWING AS ADMIN';
+  document.getElementById('dashboardRoleBadge').className = 'role-badge role-admin';
+  document.getElementById('dashboardUserName').textContent = 'Admin View';
+  initFarmDashboard(farmId);
+}
+
+// ====================== FARM DASHBOARD (for users & admin view) ======================
+function initFarmDashboard(farmId){
+  selectedFarm = farms.find(f => f.id === farmId);
+  if(!selectedFarm) return;
+
+  viewingFarmId = viewingFarmId || selectedFarm.id;
+  document.getElementById('activeFarmName').textContent = selectedFarm.name;
+  document.getElementById('bbFarm').textContent = selectedFarm.name;
+  document.getElementById('dashboardUserName').textContent = currentUser ? currentUser.name : 'Viewing Farm';
+
+  animals = genAnimals(selectedFarm);
+  alerts = [];
+  aiInsights = [`${Math.round(animals.filter(a=>a.status==='Moving').length / animals.length * 100)}% of animals are active now.`];
+
+  updateStats();
+  renderAnimalList();
+  renderRightPanel();
+  initCanvas();
+  startSimulation();
+  setViewMode('gps'); // default to GPS
+}
+
+function showFarmSelector(){
+  // Simple selector for users with multiple farms (future proof)
+  let options = farms.filter(f => currentUser && currentUser.ownedFarms.includes(f.id))
+                     .map(f => `<div onclick="switchToFarm(${f.id});closeFarmSelector()" style="padding:12px;background:var(--surface);margin:4px 0;border-radius:8px;cursor:pointer">${f.name}</div>`).join('');
+  if(options === '') options = '<div style="padding:20px;text-align:center;color:var(--text3)">No other farms assigned yet.</div>';
+  
+  const selectorHTML = `<div style="position:fixed;inset:0;background:rgba(0,0,0,0.8);display:flex;align-items:center;justify-content:center;z-index:200" onclick="if(event.target===this)closeFarmSelector()">
+    <div style="background:var(--bg2);width:420px;border-radius:12px;padding:20px">
+      <h3 style="margin-bottom:16px">Switch Farm</h3>
+      ${options}
+    </div>
+  </div>`;
+  const div = document.createElement('div');
+  div.innerHTML = selectorHTML;
+  document.body.appendChild(div.firstElementChild);
+}
+
+function closeFarmSelector(){
+  const els = document.querySelectorAll('div[onclick^="closeFarmSelector"]');
+  if(els.length) els[0].remove();
+}
+
+function switchToFarm(farmId){
+  closeFarmSelector();
+  initFarmDashboard(farmId);
+}
+
+// ====================== VIEW MODE: GPS vs CAMERA ======================
+function setViewMode(mode){
+  currentViewMode = mode;
+  document.getElementById('gpsBtn').classList.toggle('active', mode==='gps');
+  document.getElementById('cameraBtn').classList.toggle('active', mode==='camera');
+  
+  document.getElementById('gpsPanel').style.display = mode === 'gps' ? 'flex' : 'none';
+  const camPanel = document.getElementById('cameraPanel');
+  camPanel.style.display = mode === 'camera' ? 'flex' : 'none';
+
+  if(mode === 'camera') renderCameraFeeds();
+}
+
+function renderCameraFeeds(){
+  const grid = document.getElementById('cameraGrid');
+  let html = '';
+  const camCount = selectedFarm.cameras || 5;
+  for(let i = 1; i <= camCount; i++){
+    html += `
+      <div class="camera-feed">
+        <div class="feed-header">
+          <div class="cam-label">MicroCam-${i.toString().padStart(2,'0')}</div>
+          <div><span class="live-dot"></span> LIVE</div>
+        </div>
+        <div class="feed-content">📹 ${['Waterhole','Grazing zone','Forest edge','Salt lick','River bank'][i%5]}</div>
+        <div class="overlay">${Math.floor(Math.random()*8)+2}m ago • ${selectedFarm.name}</div>
+      </div>`;
+  }
+  grid.innerHTML = html;
+}
+
+// ====================== REST OF ORIGINAL DASHBOARD LOGIC (unchanged) ======================
+function updateStats(){ /* same as previous version */ 
+  const moving = animals.filter(a=>a.status==='Moving').length;
+  const alertC = animals.filter(a=>a.status==='Alert').length;
+  document.getElementById('statTotal').textContent = animals.length;
+  document.getElementById('statOnline').textContent = animals.length - Math.round(animals.length*0.03);
+  document.getElementById('statMoving').textContent = moving;
+  document.getElementById('statAlerts').textContent = alertC;
+  document.getElementById('mapCount').textContent = animals.length;
+  const diff = Math.round((new Date()-syncTime)/1000);
+  document.getElementById('bbSync').textContent = diff+'s ago';
+}
+
+function setFilter(f,el){ /* same */ 
+  activeFilter = f;
+  document.querySelectorAll('.sf').forEach(x=>x.classList.remove('on'));
+  el.classList.add('on');
+  renderAnimalList();
+}
+
+function filterAnimals(v){ /* same */ 
+  searchVal = v.toLowerCase();
+  renderAnimalList();
+}
+
+function renderAnimalList(){ /* same as previous */ 
+  const list = document.getElementById('animalList');
+  const filtered = animals.filter(a=>{
+    const mf = activeFilter==='All'||a.status===activeFilter;
+    const ms = !searchVal||a.name.toLowerCase().includes(searchVal)||a.species.toLowerCase().includes(searchVal)||a.tag.toLowerCase().includes(searchVal);
+    return mf && ms;
+  });
+  list.innerHTML = filtered.map(a=>`
+    <div class="a-card${selectedAnimal&&selectedAnimal.id===a.id?' selected':''}${a.status==='Alert'?' alert-card':''}" onclick="selectAnimal(${a.id})">
+      <div class="a-avatar" style="background:${a.status==='Alert'?'var(--red-dim)':a.status==='Moving'?'var(--green-dim)':'var(--surface)'}">${a.emoji}</div>
+      <div style="flex:1;min-width:0"><div class="a-name">${a.name}</div><div class="a-tag">${a.tag} · ${a.species}</div></div>
+      <div class="a-status">
+        <div class="a-status-txt"><span class="status-dot-sm" style="background:${a.status==='Moving'?'var(--green)':a.status==='Alert'?'var(--red)':'var(--text3)'}"></span><span style="color:${a.status==='Alert'?'var(--red)':a.status==='Moving'?'var(--green)':'var(--text3)'};font-size:10px;font-family:var(--mono)">${a.status}</span></div>
+        <div class="a-batt">${a.battery}%</div>
+      </div>
+    </div>`).join('');
+}
+
+function selectAnimal(id){ /* same */ 
+  selectedAnimal = animals.find(a=>a.id===id);
+  renderAnimalList();
+  setRightTab('detail');
+}
+
+function setRightTab(t){ /* same */ 
+  rightTab = t;
+  document.querySelectorAll('.rp-tab').forEach(x=>x.classList.remove('active'));
+  const el = document.getElementById('tab-'+t);
+  if(el) el.classList.add('active');
+  renderRightPanel();
+}
+
+function renderRightPanel(){ /* same as before */ 
+  const body = document.getElementById('rpBody');
+  if(rightTab==='ai') body.innerHTML = renderAIPanel();
+  else if(rightTab==='detail') body.innerHTML = renderDetailPanel();
+  else body.innerHTML = renderHWPanel();
+}
+
+function renderAIPanel(){ /* same */ 
+  return `<div class="ai-header"><div class="ai-icon">🤖</div><div><div class="ai-title">AI movement analysis</div></div></div>
+    <div class="ai-summary"><div class="ai-summary-label">Latest insight</div><div class="ai-summary-text">${aiInsights[0]||'Analysing...'}</div></div>`;
+}
+
+function renderDetailPanel(){ /* same */ 
+  if(!selectedAnimal) return `<div style="padding:20px;text-align:center;color:var(--text3)">Select an animal</div>`;
+  const a = selectedAnimal;
+  return `
+    <div class="detail-avatar" style="background:${a.status==='Alert'?'var(--red-dim)':a.status==='Moving'?'var(--green-dim)':'var(--surface)'}">${a.emoji}</div>
+    <div class="detail-name">${a.name}</div>
+    <div class="detail-tag">${a.tag} · ${a.species}</div>
+    <div class="detail-grid">
+      <div class="dg-cell"><div class="dg-label">Status</div><div class="dg-val" style="color:${a.status==='Moving'?'var(--green)':a.status==='Alert'?'var(--red)':'var(--text2)'}">${a.status}</div></div>
+      <div class="dg-cell"><div class="dg-label">Speed</div><div class="dg-val">${a.status==='Moving'?Math.round(4+Math.random()*16):0} km/h</div></div>
+      <div class="dg-cell"><div class="dg-label">Battery</div><div class="dg-val" style="color:${a.battery<30?'var(--red)':a.battery<50?'var(--amber)':'var(--green)'}">${a.battery}%</div></div>
+    </div>`;
+}
+
+function renderHWPanel(){
+  return `<div style="padding:16px;font-size:13px">MicroGPS collars: ${selectedFarm.animals} online<br>Micro-cameras: ${selectedFarm.cameras} live feeds</div>`;
+}
+
+function toggleGeofence(){
+  geofenceOn = !geofenceOn;
+  document.getElementById('fenceLabel').textContent = geofenceOn?'ON':'OFF';
+}
+
+// ====================== CANVAS + SIMULATION ======================
+let canvas, ctx, animFrame;
+const MAP_W = 800, MAP_H = 420;
+
+function initCanvas(){
+  canvas = document.getElementById('mapCanvas');
+  ctx = canvas.getContext('2d');
+  resizeCanvas();
+  window.addEventListener('resize', resizeCanvas);
+  canvas.addEventListener('click', onMapClick);
+}
+
+function resizeCanvas(){
+  canvas.width = canvas.offsetWidth;
+  canvas.height = canvas.offsetHeight;
+}
+
+function drawMap(){
+  if(!ctx || currentViewMode !== 'gps') return;
+  const W = canvas.width, H = canvas.height;
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle = '#0f1a0f'; ctx.fillRect(0,0,W,H);
+
+  // grid + river + geofence (same as original)
+  ctx.strokeStyle = 'rgba(74,180,74,0.05)'; ctx.lineWidth = 1;
+  for(let x=0;x<W;x+=50){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();}
+  for(let y=0;y<H;y+=50){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
+
+  ctx.beginPath();ctx.moveTo(0,H*.5); ctx.bezierCurveTo(W*.25,H*.45,W*.6,H*.55,W,H*.48);
+  ctx.strokeStyle = 'rgba(30,80,120,0.4)'; ctx.lineWidth = 8; ctx.stroke();
+
+  if(geofenceOn){
+    ctx.beginPath();ctx.rect(40,30,W-80,H-60);
+    ctx.strokeStyle = 'rgba(232,168,56,0.5)'; ctx.lineWidth = 2; ctx.setLineDash([8,5]); ctx.stroke(); ctx.setLineDash([]);
+  }
+
+  animals.forEach(a=>{
+    const px = a.x * (W/MAP_W), py = a.y * (H/MAP_H);
+    const col = a.status==='Alert'?'#e84a4a':a.battery<40?'#e8a838':a.status==='Moving'?'#4ab44a':'#555';
+
+    if(a.trail.length>1 && a.status==='Moving'){
+      ctx.beginPath();
+      ctx.moveTo(a.trail[0].x*(W/MAP_W), a.trail[0].y*(H/MAP_H));
+      a.trail.forEach(p=>ctx.lineTo(p.x*(W/MAP_W), p.y*(H/MAP_H)));
+      ctx.strokeStyle = 'rgba(74,180,74,0.2)'; ctx.lineWidth = 1; ctx.stroke();
+    }
+
+    ctx.beginPath(); ctx.arc(px,py,5,0,Math.PI*2); ctx.fillStyle = col; ctx.fill();
+    if(selectedAnimal && selectedAnimal.id===a.id){
+      ctx.beginPath(); ctx.arc(px,py,14,0,Math.PI*2);
+      ctx.strokeStyle = col; ctx.lineWidth = 2; ctx.setLineDash([3,2]); ctx.stroke(); ctx.setLineDash([]);
+    }
+  });
+}
+
+function startSimulation(){
+  function tick(){
+    animals.forEach(a=>{
+      if(a.status==='Moving'){
+        a.x += a.vx + (Math.random()-0.5)*0.4;
+        a.y += a.vy + (Math.random()-0.5)*0.3;
+        if(a.x<10||a.x>MAP_W-10) a.vx *= -1;
+        if(a.y<10||a.y>MAP_H-10) a.vy *= -1;
+        a.trail.push({x:a.x,y:a.y});
+        if(a.trail.length>20) a.trail.shift();
+      }
+    });
+    syncTime = new Date();
+    updateStats();
+    drawMap();
+    if(rightTab==='ai') renderRightPanel();
+    animFrame = requestAnimationFrame(tick);
+  }
+  tick();
+}
+
+function onMapClick(e){
+  const rect = canvas.getBoundingClientRect();
+  const mx = (e.clientX - rect.left) * (MAP_W / canvas.width);
+  const my = (e.clientY - rect.top) * (MAP_H / canvas.height);
+  let closest = null, minD = 999;
+  animals.forEach(a=>{
+    const d = Math.hypot(a.x-mx, a.y-my);
+    if(d < minD){ minD = d; closest = a; }
+  });
+  if(closest && minD < 20){
+    selectedAnimal = closest;
+    renderAnimalList();
+    setRightTab('detail');
+  }
+}
+
+window.onload = () => {};
+</script>
+</body>
+</html>
